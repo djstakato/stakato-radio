@@ -5,31 +5,39 @@ const PEAK_COVER_URL = "https://pub-9db46a6d9e60462d9ab03a9f5f4a7b8e.r2.dev/peak
 const LEFT_COVER_URL = "https://pub-e25dc8d0523941dfa8e011579a4d2751.r2.dev/leftfield.png";
 
 const els = {
+  // pages
   landing: document.getElementById("landing"),
   app: document.getElementById("app"),
   player: document.getElementById("player"),
 
+  // landing picks
   pickPeak: document.getElementById("pickPeak"),
   pickLeft: document.getElementById("pickLeft"),
   imgPeak: document.getElementById("imgPeak"),
   imgLeft: document.getElementById("imgLeft"),
 
+  // hero
   heroImg: document.getElementById("heroImg"),
   heroVol: document.getElementById("heroVol"),
   heroName: document.getElementById("heroName"),
+  volumeSwitch: document.getElementById("volumeSwitch"),
 
+  // controls
   genre: document.getElementById("genre"),
   shuffle: document.getElementById("shuffle"),
-  back: document.getElementById("back"),
   stats: document.getElementById("stats"),
   list: document.getElementById("list"),
 
+  // player
   audio: document.getElementById("audio"),
   nowTitle: document.getElementById("nowTitle"),
   nowMeta: document.getElementById("nowMeta"),
   playPause: document.getElementById("playPause"),
   next: document.getElementById("next"),
   prev: document.getElementById("prev"),
+  seek: document.getElementById("seek"),
+  tCur: document.getElementById("tCur"),
+  tDur: document.getElementById("tDur"),
 };
 
 let state = {
@@ -39,7 +47,14 @@ let state = {
   currentIndex: -1,
 };
 
-function metaLine(t){
+function fmtTime(sec) {
+  if (!isFinite(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function metaLine(t) {
   const bits = [];
   if (t.artist) bits.push(t.artist);
   if (t.year) bits.push(String(t.year));
@@ -47,37 +62,45 @@ function metaLine(t){
   return bits.join(" · ");
 }
 
-function setNow(t){
+function setNow(t) {
   els.nowTitle.textContent = t ? (t.title || t.id) : "Nothing playing";
   els.nowMeta.textContent = t ? metaLine(t) : "";
 }
 
-function uniqGenres(list){
-  const s = new Set();
-  list.forEach(t => { if (t.genre) s.add(t.genre); });
-  return [...s].sort((a,b) => a.localeCompare(b));
+function resetProgress() {
+  els.seek.value = 0;
+  els.tCur.textContent = "0:00";
+  els.tDur.textContent = "0:00";
 }
 
-function renderGenre(){
+function uniqGenres(list) {
+  const s = new Set();
+  list.forEach((t) => {
+    if (t.genre) s.add(t.genre);
+  });
+  return [...s].sort((a, b) => a.localeCompare(b));
+}
+
+function renderGenre() {
   const cur = els.genre.value;
   els.genre.innerHTML = `<option value="">All genres</option>`;
-  uniqGenres(state.tracks).forEach(g => {
+  uniqGenres(state.tracks).forEach((g) => {
     const opt = document.createElement("option");
     opt.value = g;
     opt.textContent = g;
     els.genre.appendChild(opt);
   });
-  if ([...els.genre.options].some(o => o.value === cur)) els.genre.value = cur;
+  if ([...els.genre.options].some((o) => o.value === cur)) els.genre.value = cur;
 }
 
-function applyFilter(){
+function applyFilter() {
   const g = els.genre.value;
-  state.filtered = state.tracks.filter(t => !g || t.genre === g);
+  state.filtered = state.tracks.filter((t) => !g || t.genre === g);
   els.stats.textContent = `${state.filtered.length} tracks${g ? ` · ${g}` : ""}`;
   renderList();
 }
 
-function renderList(){
+function renderList() {
   els.list.innerHTML = "";
   state.filtered.forEach((t, i) => {
     const row = document.createElement("div");
@@ -101,49 +124,49 @@ function renderList(){
   });
 }
 
-function playFromFiltered(i){
+function playFromFiltered(i) {
   const t = state.filtered[i];
   if (!t) return;
 
   // map to absolute index so next/prev works across full list
-  const abs = state.tracks.findIndex(x => x.id === t.id);
+  const abs = state.tracks.findIndex((x) => x.id === t.id);
   state.currentIndex = abs >= 0 ? abs : 0;
 
   els.audio.src = t.src;
-  els.audio.play().catch(()=>{});
+  els.audio.play().catch(() => {});
   setNow(t);
   els.playPause.textContent = "⏸";
 }
 
-function nextTrack(){
+function nextTrack() {
   if (!state.tracks.length) return;
   if (state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = (state.currentIndex + 1) % state.tracks.length;
   const t = state.tracks[state.currentIndex];
   els.audio.src = t.src;
-  els.audio.play().catch(()=>{});
+  els.audio.play().catch(() => {});
   setNow(t);
   els.playPause.textContent = "⏸";
 }
 
-function prevTrack(){
+function prevTrack() {
   if (!state.tracks.length) return;
   if (state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
   const t = state.tracks[state.currentIndex];
   els.audio.src = t.src;
-  els.audio.play().catch(()=>{});
+  els.audio.play().catch(() => {});
   setNow(t);
   els.playPause.textContent = "⏸";
 }
 
-function togglePlayPause(){
-  if (!els.audio.src){
+function togglePlayPause() {
+  if (!els.audio.src) {
     if (state.filtered.length) playFromFiltered(0);
     return;
   }
-  if (els.audio.paused){
-    els.audio.play().catch(()=>{});
+  if (els.audio.paused) {
+    els.audio.play().catch(() => {});
     els.playPause.textContent = "⏸";
   } else {
     els.audio.pause();
@@ -151,21 +174,24 @@ function togglePlayPause(){
   }
 }
 
-function shuffle(){
+function shuffle() {
   if (!state.tracks.length) return;
   state.currentIndex = Math.floor(Math.random() * state.tracks.length);
   const t = state.tracks[state.currentIndex];
   els.audio.src = t.src;
-  els.audio.play().catch(()=>{});
+  els.audio.play().catch(() => {});
   setNow(t);
   els.playPause.textContent = "⏸";
 }
 
-async function enterVolume(volume){
+async function enterVolume(volume) {
   state.volume = volume;
 
-  // hero + cover
-  if (volume === "peak"){
+  // keep dropdown synced
+  if (els.volumeSwitch) els.volumeSwitch.value = volume;
+
+  // hero cover + title
+  if (volume === "peak") {
     els.heroVol.textContent = "VOLUME 1";
     els.heroName.textContent = "PEAK";
     els.heroImg.src = PEAK_COVER_URL;
@@ -175,18 +201,20 @@ async function enterVolume(volume){
     els.heroImg.src = LEFT_COVER_URL;
   }
 
-  // load data
+  // load tracks
   const file = volume === "peak" ? "tracks-peak.json" : "tracks-leftfield.json";
   const res = await fetch(file, { cache: "no-store" });
   state.tracks = await res.json();
 
-  // reset player
+  // reset player state
+  state.filtered = [];
   state.currentIndex = -1;
   els.audio.pause();
   els.audio.removeAttribute("src");
   els.audio.load();
   setNow(null);
   els.playPause.textContent = "▶";
+  resetProgress();
 
   renderGenre();
   applyFilter();
@@ -196,30 +224,20 @@ async function enterVolume(volume){
   els.app.classList.remove("hidden");
   els.player.classList.remove("hidden");
 
-  // little “awesome” moment: smooth scroll + subtle flash
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  // little “hit”
   pulse();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function backToLanding(){
-  els.app.classList.add("hidden");
-  els.player.classList.add("hidden");
-  els.landing.classList.remove("hidden");
-
-  els.audio.pause();
-  els.audio.removeAttribute("src");
-  els.audio.load();
-  setNow(null);
-  els.playPause.textContent = "▶";
-}
-
-function pulse(){
+function pulse() {
   document.body.style.transition = "filter .18s ease";
   document.body.style.filter = "contrast(1.1) saturate(1.15)";
-  setTimeout(() => { document.body.style.filter = ""; }, 180);
+  setTimeout(() => {
+    document.body.style.filter = "";
+  }, 180);
 }
 
-function escapeHtml(s){
+function escapeHtml(s) {
   return String(s || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -229,20 +247,54 @@ function escapeHtml(s){
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // set landing images
+  // landing images
   els.imgPeak.src = PEAK_COVER_URL;
   els.imgLeft.src = LEFT_COVER_URL;
 
+  // click covers to enter
   els.pickPeak.addEventListener("click", () => enterVolume("peak"));
   els.pickLeft.addEventListener("click", () => enterVolume("leftfield"));
 
-  els.genre.addEventListener("change", applyFilter);
-  els.shuffle.addEventListener("click", shuffle);
-  els.back.addEventListener("click", backToLanding);
+  // switch volumes from the top dropdown (inside app)
+  if (els.volumeSwitch) {
+    els.volumeSwitch.addEventListener("change", () => {
+      enterVolume(els.volumeSwitch.value);
+    });
+  }
 
+  // genre filter only
+  els.genre.addEventListener("change", applyFilter);
+
+  // shuffle
+  els.shuffle.addEventListener("click", shuffle);
+
+  // player controls
   els.playPause.addEventListener("click", togglePlayPause);
   els.next.addEventListener("click", nextTrack);
   els.prev.addEventListener("click", prevTrack);
 
+  // autoplay next on end
   els.audio.addEventListener("ended", nextTrack);
+
+  // progress + time
+  els.audio.addEventListener("loadedmetadata", () => {
+    els.tDur.textContent = fmtTime(els.audio.duration || 0);
+  });
+
+  els.audio.addEventListener("timeupdate", () => {
+    const cur = els.audio.currentTime || 0;
+    const dur = els.audio.duration || 0;
+    els.tCur.textContent = fmtTime(cur);
+    els.tDur.textContent = fmtTime(dur);
+    if (dur > 0) els.seek.value = Math.floor((cur / dur) * 1000);
+  });
+
+  els.seek.addEventListener("input", () => {
+    const dur = els.audio.duration || 0;
+    if (dur <= 0) return;
+    const pct = Number(els.seek.value) / 1000;
+    els.audio.currentTime = pct * dur;
+  });
 });
+
+
