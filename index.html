@@ -37,11 +37,16 @@
         <div id="heroVol" class="heroVol">VOLUME</div>
         <div id="heroName" class="heroName">TITLE</div>
         <div class="heroActions">
+          <select id="volumeSwitch" class="select" aria-label="Choose volume">
+            <option value="peak">Volume 1: Peak</option>
+            <option value="leftfield">Volume 2: Left Field</option>
+          </select>
+        
           <select id="genre" class="select" aria-label="Genre filter">
             <option value="">All genres</option>
           </select>
+        
           <button id="shuffle" class="btn">Shuffle</button>
-          <button id="back" class="btn ghost">Back</button>
         </div>
         <div id="stats" class="stats"></div>
       </div>
@@ -55,17 +60,26 @@
       <div id="nowTitle" class="nowTitle">Nothing playing</div>
       <div id="nowMeta" class="nowMeta"></div>
     </div>
-
+  
     <div class="controls">
       <button id="prev" class="icon" title="Previous">⏮</button>
       <button id="playPause" class="icon big" title="Play/Pause">▶</button>
       <button id="next" class="icon" title="Next">⏭</button>
     </div>
-
+  
+    <div class="progress">
+      <div class="timeRow">
+        <span id="tCur">0:00</span>
+        <span id="tDur">0:00</span>
+      </div>
+      <input id="seek" type="range" min="0" max="1000" value="0" />
+    </div>
+  
     <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
   </footer>
 
   <script src="app.js"></script>
 </body>
 </html>
+
 
