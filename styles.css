@@ -59,6 +59,22 @@ body{
   padding: 0 16px;
 }
 
+.enterCorner{
+  position:absolute;
+  right:14px;
+  bottom:12px;
+  z-index:2;
+  font-size:12px;
+  color: var(--muted);
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:999px;
+  background: rgba(7,7,11,.55);
+  backdrop-filter: blur(6px);
+}
+
 .cover{
   border:1px solid var(--line);
   border-radius:22px;
@@ -280,10 +296,28 @@ body{
   background: rgba(10,10,16,.90);
   backdrop-filter: blur(10px);
   display:grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto 1.1fr;
   gap:12px;
   align-items:center;
   padding: 12px 16px;
+}
+
+.progress{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  justify-content:center;
+}
+.timeRow{
+  display:flex;
+  justify-content:space-between;
+  color: var(--muted);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+.progress input[type="range"]{
+  width:100%;
 }
 
 .nowTitle{ font-weight:950; }
@@ -309,3 +343,4 @@ body{
   .controls{ justify-content:flex-start; }
   .player{ grid-template-columns: 1fr; }
 }
+
