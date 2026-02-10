@@ -5,46 +5,44 @@ const PEAK_COVER_URL = "https://pub-9db46a6d9e60462d9ab03a9f5f4a7b8e.r2.dev/peak
 const LEFT_COVER_URL = "https://pub-e25dc8d0523941dfa8e011579a4d2751.r2.dev/leftfield.png";
 
 const els = {
-  // pages
   landing: document.getElementById("landing"),
   app: document.getElementById("app"),
   player: document.getElementById("player"),
 
-  // landing picks
   pickPeak: document.getElementById("pickPeak"),
   pickLeft: document.getElementById("pickLeft"),
   imgPeak: document.getElementById("imgPeak"),
   imgLeft: document.getElementById("imgLeft"),
 
-  // hero
   heroImg: document.getElementById("heroImg"),
   heroVol: document.getElementById("heroVol"),
   heroName: document.getElementById("heroName"),
   volumeSwitch: document.getElementById("volumeSwitch"),
 
-  // controls
   genre: document.getElementById("genre"),
   shuffle: document.getElementById("shuffle"),
   stats: document.getElementById("stats"),
   list: document.getElementById("list"),
 
-  // player
   audio: document.getElementById("audio"),
   nowTitle: document.getElementById("nowTitle"),
   nowMeta: document.getElementById("nowMeta"),
   playPause: document.getElementById("playPause"),
   next: document.getElementById("next"),
   prev: document.getElementById("prev"),
+
   seek: document.getElementById("seek"),
   tCur: document.getElementById("tCur"),
   tDur: document.getElementById("tDur"),
 };
 
 let state = {
-  volume: null, // "peak" | "leftfield"
+  volume: null,
   tracks: [],
   filtered: [],
   currentIndex: -1,
+  isLoading: false,
+  isSeeking: false,
 };
 
 function fmtTime(sec) {
@@ -69,35 +67,51 @@ function setNow(t) {
 
 function resetProgress() {
   els.seek.value = 0;
+  els.seek.disabled = true;
   els.tCur.textContent = "0:00";
   els.tDur.textContent = "0:00";
 }
 
+function enableProgressIfPossible() {
+  const dur = els.audio.duration || 0;
+  if (dur > 0) {
+    els.seek.disabled = false;
+    els.tDur.textContent = fmtTime(dur);
+  }
+}
+
 function uniqGenres(list) {
   const s = new Set();
-  list.forEach((t) => {
-    if (t.genre) s.add(t.genre);
-  });
+  list.forEach(t => { if (t.genre) s.add(t.genre); });
   return [...s].sort((a, b) => a.localeCompare(b));
 }
 
 function renderGenre() {
   const cur = els.genre.value;
   els.genre.innerHTML = `<option value="">All genres</option>`;
-  uniqGenres(state.tracks).forEach((g) => {
+  uniqGenres(state.tracks).forEach(g => {
     const opt = document.createElement("option");
     opt.value = g;
     opt.textContent = g;
     els.genre.appendChild(opt);
   });
-  if ([...els.genre.options].some((o) => o.value === cur)) els.genre.value = cur;
+  if ([...els.genre.options].some(o => o.value === cur)) els.genre.value = cur;
 }
 
 function applyFilter() {
   const g = els.genre.value;
-  state.filtered = state.tracks.filter((t) => !g || t.genre === g);
+  state.filtered = state.tracks.filter(t => !g || t.genre === g);
   els.stats.textContent = `${state.filtered.length} tracks${g ? ` · ${g}` : ""}`;
   renderList();
+}
+
+function escapeHtml(s) {
+  return String(s || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function renderList() {
@@ -124,40 +138,37 @@ function renderList() {
   });
 }
 
+function playTrack(t) {
+  if (!t) return;
+
+  els.audio.src = t.src;
+  resetProgress(); // reset immediately
+  els.audio.play().catch(() => {});
+  setNow(t);
+  els.playPause.textContent = "⏸";
+}
+
 function playFromFiltered(i) {
   const t = state.filtered[i];
   if (!t) return;
 
-  // map to absolute index so next/prev works across full list
-  const abs = state.tracks.findIndex((x) => x.id === t.id);
+  const abs = state.tracks.findIndex(x => x.id === t.id);
   state.currentIndex = abs >= 0 ? abs : 0;
-
-  els.audio.src = t.src;
-  els.audio.play().catch(() => {});
-  setNow(t);
-  els.playPause.textContent = "⏸";
+  playTrack(t);
 }
 
 function nextTrack() {
   if (!state.tracks.length) return;
   if (state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = (state.currentIndex + 1) % state.tracks.length;
-  const t = state.tracks[state.currentIndex];
-  els.audio.src = t.src;
-  els.audio.play().catch(() => {});
-  setNow(t);
-  els.playPause.textContent = "⏸";
+  playTrack(state.tracks[state.currentIndex]);
 }
 
 function prevTrack() {
   if (!state.tracks.length) return;
   if (state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
-  const t = state.tracks[state.currentIndex];
-  els.audio.src = t.src;
-  els.audio.play().catch(() => {});
-  setNow(t);
-  els.playPause.textContent = "⏸";
+  playTrack(state.tracks[state.currentIndex]);
 }
 
 function togglePlayPause() {
@@ -177,20 +188,10 @@ function togglePlayPause() {
 function shuffle() {
   if (!state.tracks.length) return;
   state.currentIndex = Math.floor(Math.random() * state.tracks.length);
-  const t = state.tracks[state.currentIndex];
-  els.audio.src = t.src;
-  els.audio.play().catch(() => {});
-  setNow(t);
-  els.playPause.textContent = "⏸";
+  playTrack(state.tracks[state.currentIndex]);
 }
 
-async function enterVolume(volume) {
-  state.volume = volume;
-
-  // keep dropdown synced
-  if (els.volumeSwitch) els.volumeSwitch.value = volume;
-
-  // hero cover + title
+function setHero(volume) {
   if (volume === "peak") {
     els.heroVol.textContent = "VOLUME 1";
     els.heroName.textContent = "PEAK";
@@ -200,94 +201,69 @@ async function enterVolume(volume) {
     els.heroName.textContent = "LEFT FIELD";
     els.heroImg.src = LEFT_COVER_URL;
   }
-
-  // load tracks
-  const file = volume === "peak" ? "tracks-peak.json" : "tracks-leftfield.json";
-  const res = await fetch(file, { cache: "no-store" });
-  state.tracks = await res.json();
-
-  // reset player state
-  state.filtered = [];
-  state.currentIndex = -1;
-  els.audio.pause();
-  els.audio.removeAttribute("src");
-  els.audio.load();
-  setNow(null);
-  els.playPause.textContent = "▶";
-  resetProgress();
-
-  renderGenre();
-  applyFilter();
-
-  // show app
-  els.landing.classList.add("hidden");
-  els.app.classList.remove("hidden");
-  els.player.classList.remove("hidden");
-
-  // little “hit”
-  pulse();
-  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function pulse() {
-  document.body.style.transition = "filter .18s ease";
-  document.body.style.filter = "contrast(1.1) saturate(1.15)";
-  setTimeout(() => {
-    document.body.style.filter = "";
-  }, 180);
-}
+async function enterVolume(volume) {
+  if (state.isLoading) return;
+  state.isLoading = true;
 
-function escapeHtml(s) {
-  return String(s || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+  try {
+    state.volume = volume;
 
-document.addEventListener("DOMContentLoaded", () => {
-  // landing images
-  els.imgPeak.src = PEAK_COVER_URL;
-  els.imgLeft.src = LEFT_COVER_URL;
+    if (els.volumeSwitch) els.volumeSwitch.value = volume;
+    setHero(volume);
 
-  // click covers to enter
-  els.pickPeak.addEventListener("click", () => enterVolume("peak"));
-  els.pickLeft.addEventListener("click", () => enterVolume("leftfield"));
+    const file = volume === "peak" ? "tracks-peak.json" : "tracks-leftfield.json";
+    const res = await fetch(file, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Failed to load ${file}: ${res.status}`);
+    state.tracks = await res.json();
 
-  // switch volumes from the top dropdown (inside app)
-  if (els.volumeSwitch) {
-    els.volumeSwitch.addEventListener("change", () => {
-      enterVolume(els.volumeSwitch.value);
-    });
+    // reset player
+    state.filtered = [];
+    state.currentIndex = -1;
+    els.audio.pause();
+    els.audio.removeAttribute("src");
+    els.audio.load();
+    setNow(null);
+    els.playPause.textContent = "▶";
+    resetProgress();
+
+    renderGenre();
+    applyFilter();
+
+    // show app
+    els.landing.classList.add("hidden");
+    els.app.classList.remove("hidden");
+    els.player.classList.remove("hidden");
+  } finally {
+    state.isLoading = false;
   }
+}
 
-  // genre filter only
-  els.genre.addEventListener("change", applyFilter);
-
-  // shuffle
-  els.shuffle.addEventListener("click", shuffle);
-
-  // player controls
-  els.playPause.addEventListener("click", togglePlayPause);
-  els.next.addEventListener("click", nextTrack);
-  els.prev.addEventListener("click", prevTrack);
-
-  // autoplay next on end
-  els.audio.addEventListener("ended", nextTrack);
-
-  // progress + time
+function wirePlayerProgress() {
+  // Enable progress when we know duration
   els.audio.addEventListener("loadedmetadata", () => {
-    els.tDur.textContent = fmtTime(els.audio.duration || 0);
+    enableProgressIfPossible();
   });
 
+  // Update progress as it plays
   els.audio.addEventListener("timeupdate", () => {
+    if (state.isSeeking) return;
     const cur = els.audio.currentTime || 0;
     const dur = els.audio.duration || 0;
+
     els.tCur.textContent = fmtTime(cur);
     els.tDur.textContent = fmtTime(dur);
-    if (dur > 0) els.seek.value = Math.floor((cur / dur) * 1000);
+
+    if (dur > 0) {
+      els.seek.value = Math.floor((cur / dur) * 1000);
+      els.seek.disabled = false;
+    }
   });
+
+  // Seek interaction: lock updates while user drags
+  els.seek.addEventListener("pointerdown", () => { state.isSeeking = true; });
+  els.seek.addEventListener("pointerup", () => { state.isSeeking = false; });
 
   els.seek.addEventListener("input", () => {
     const dur = els.audio.duration || 0;
@@ -295,6 +271,41 @@ document.addEventListener("DOMContentLoaded", () => {
     const pct = Number(els.seek.value) / 1000;
     els.audio.currentTime = pct * dur;
   });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Landing images
+  els.imgPeak.src = PEAK_COVER_URL;
+  els.imgLeft.src = LEFT_COVER_URL;
+
+  // Enter from landing
+  els.pickPeak.addEventListener("click", () => enterVolume("peak"));
+  els.pickLeft.addEventListener("click", () => enterVolume("leftfield"));
+
+  // Switch volumes in app
+  if (els.volumeSwitch) {
+    els.volumeSwitch.addEventListener("change", async () => {
+      await enterVolume(els.volumeSwitch.value);
+    });
+  }
+
+  // Genre only
+  els.genre.addEventListener("change", applyFilter);
+
+  // Shuffle
+  els.shuffle.addEventListener("click", shuffle);
+
+  // Player controls
+  els.playPause.addEventListener("click", togglePlayPause);
+  els.next.addEventListener("click", nextTrack);
+  els.prev.addEventListener("click", prevTrack);
+
+  // Autoplay next when track ends
+  els.audio.addEventListener("ended", nextTrack);
+
+  // Progress wiring
+  resetProgress();
+  wirePlayerProgress();
 });
 
 
