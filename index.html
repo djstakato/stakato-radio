@@ -7,89 +7,67 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="bg-noise"></div>
-  <div class="bg-scanlines"></div>
+  <div class="noise"></div>
 
-  <header class="topbar">
+  <header class="top">
     <div class="brand">
-      <div class="logo glitch" data-text="DJ STAKATO RADIO">DJ STAKATO RADIO</div>
-      <div class="sub">mashup edits · underground signal</div>
-    </div>
-
-    <div class="top-controls">
-      <select id="station" class="select">
-        <option value="peak">VOL 1: PEAK</option>
-        <option value="leftfield">VOL 2: LEFT FIELD</option>
-      </select>
-
-      <button id="shuffleAll" class="chip">SHUFFLE</button>
-      <button id="glitch" class="chip">GLITCH</button>
+      <div class="title">DJ STAKATO</div>
+      <div class="subtitle">Mashup Edits · pick a volume</div>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="sidebar">
-      <div class="panel">
-        <div class="panel-title">FILTERS</div>
-
-        <input id="search" class="search" placeholder="search title, artist, genre, year" />
-
-        <div class="mini-row">
-          <div class="mini-label">Sort</div>
-          <select id="sort" class="select small">
-            <option value="title">Title</option>
-            <option value="artist">Artist</option>
-            <option value="year">Year</option>
-            <option value="genre">Genre</option>
-          </select>
-        </div>
-
-        <div class="mini-row">
-          <div class="mini-label">Genre</div>
-          <select id="genre" class="select small">
-            <option value="">All</option>
-          </select>
-        </div>
-
-        <div class="hint">
-          Tip: click a track to play. Hit GLITCH for chaos.
-        </div>
+  <!-- Landing -->
+  <main id="landing" class="landing">
+    <button class="cover" id="pickPeak" aria-label="Open Peak">
+      <img id="imgPeak" alt="Volume 1 Peak cover" />
+      <div class="coverLabel">
+        <div class="coverTitle">VOLUME 1</div>
+        <div class="coverName">PEAK</div>
+        <div class="coverHint">click to enter</div>
       </div>
+    </button>
 
-      <div class="panel">
-        <div class="panel-title">RECENT</div>
-        <div id="recent" class="recent"></div>
+    <button class="cover" id="pickLeft" aria-label="Open Left Field">
+      <img id="imgLeft" alt="Volume 2 Left Field cover" />
+      <div class="coverLabel">
+        <div class="coverTitle">VOLUME 2</div>
+        <div class="coverName">LEFT FIELD</div>
+        <div class="coverHint">click to enter</div>
       </div>
-    </aside>
-
-    <section class="content">
-      <div class="statsbar">
-        <div id="stats" class="stats">Loading…</div>
-        <div class="signal">
-          <span class="dot"></span> LIVE SIGNAL
-        </div>
-      </div>
-
-      <div id="list" class="list"></div>
-    </section>
+    </button>
   </main>
 
-  <footer class="player">
+  <!-- App -->
+  <main id="app" class="app hidden">
+    <section class="hero">
+      <img id="heroImg" class="heroImg" alt="Selected volume cover" />
+      <div class="heroText">
+        <div id="heroVol" class="heroVol">VOLUME</div>
+        <div id="heroName" class="heroName">TITLE</div>
+        <div class="heroActions">
+          <select id="genre" class="select" aria-label="Genre filter">
+            <option value="">All genres</option>
+          </select>
+          <button id="shuffle" class="btn">Shuffle</button>
+          <button id="back" class="btn ghost">Back</button>
+        </div>
+        <div id="stats" class="stats"></div>
+      </div>
+    </section>
+
+    <section id="list" class="list"></section>
+  </main>
+
+  <footer id="player" class="player hidden">
     <div class="now">
-      <div id="nowTitle" class="now-title">Nothing playing</div>
-      <div id="nowMeta" class="now-meta"></div>
+      <div id="nowTitle" class="nowTitle">Nothing playing</div>
+      <div id="nowMeta" class="nowMeta"></div>
     </div>
 
     <div class="controls">
-      <button id="prev" class="btn" title="Previous">⏮</button>
-      <button id="playPause" class="btn big" title="Play or pause">▶</button>
-      <button id="next" class="btn" title="Next">⏭</button>
-    </div>
-
-    <div class="timeline">
-      <span id="cur">0:00</span>
-      <input id="seek" type="range" min="0" max="1000" value="0" />
-      <span id="dur">0:00</span>
+      <button id="prev" class="icon" title="Previous">⏮</button>
+      <button id="playPause" class="icon big" title="Play/Pause">▶</button>
+      <button id="next" class="icon" title="Next">⏭</button>
     </div>
 
     <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
